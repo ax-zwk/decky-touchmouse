@@ -1,6 +1,6 @@
 {
   "name": "decky-touchmouse",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Touchscreen as a movement-only mouse for handhelds (no clicks, no daemon).",
   "type": "module",
   "scripts": {

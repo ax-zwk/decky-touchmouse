@@ -17,6 +17,10 @@ del sistema. Se instala, activa, desactiva y desinstala desde Decky.
   (escritura). No lee el mando, no usa red, no ejecuta subprocess ni shell.
 - Escribe un único archivo: `settings.json` en la carpeta de settings del
   plugin (`~/homebrew/settings/decky-touchmouse/`).
+- **Solo captura en game mode.** Detecta gamescope leyendo `/proc` (sin
+  subprocess): al pasar a modo escritorio libera el touchscreen automáticamente
+  (ahí no hay Steam Input y un mouse de solo movimiento te dejaría sin clicks),
+  y lo vuelve a capturar al regresar al juego. Nunca quedás atrapado.
 - Al apagar el toggle, desactivar o desinstalar el plugin desde Decky, se
   libera el touchscreen y se elimina el mouse virtual. Si el proceso muere,
   el kernel libera el grab y destruye el device uinput al cerrarse los fd:

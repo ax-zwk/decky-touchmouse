@@ -269,6 +269,28 @@ def write_events(fd, events, dry=False, log=None):
 def grab(fd, on):
     fcntl.ioctl(fd, EVIOCGRAB, 1 if on else 0)
 
+def gamescope_running():
+    """True si hay un proceso gamescope (game mode). Solo lee /proc, sin subprocess.
+
+    En modo escritorio no hay gamescope: el plugin NO debe capturar el touch,
+    porque ahí no hay Steam Input para operar con botones y el usuario quedaría
+    sin poder hacer clicks (el mouse emulado es de solo movimiento).
+    """
+    try:
+        pids = os.listdir('/proc')
+    except OSError:
+        return False
+    for pid in pids:
+        if not pid.isdigit():
+            continue
+        try:
+            with open(f'/proc/{pid}/comm', 'rb') as f:
+                if f.read(16).strip().startswith(b'gamescope'):
+                    return True
+        except OSError:
+            continue
+    return False
+
 def read_events(fd):
     try:
         data = os.read(fd, EVENT.size * 64)
@@ -295,8 +317,10 @@ class Engine:
         self.dry = dry
         self._thread = None
         self._stop = threading.Event()
-        self._mode_on = False
-        self._mode_req = None
+        self._mode_on = False       # grab real del touchscreen
+        self._desired = False       # modo pedido por el usuario
+        self._gs = True             # último chequeo de gamescope (game mode)
+        self._gs_check = 0.0
         self._settings_ver = 0
         self._applied_ver = -1
         self._error = None
@@ -308,13 +332,13 @@ class Engine:
             return
         self._stop.clear()
         self._error = None
-        self._mode_req = bool(mouse)
+        self._desired = bool(mouse)
         self._settings_ver += 1
         self._thread = threading.Thread(target=self._run, daemon=True,
                                         name='touchmouse')
         self._thread.start()
-        for _ in range(60):   # hasta 3 s esperando init o error
-            if self._touch_path or self._error or not self._thread.is_alive():
+        for _ in range(60):   # hasta 3 s esperando el primer loop (o error)
+            if self._error or self._gs_check > 0 or not self._thread.is_alive():
                 break
             time.sleep(0.05)
 
@@ -328,10 +352,10 @@ class Engine:
         self._touch_name = None
 
     def set_mode(self, on):
-        self._mode_req = bool(on)
+        self._desired = bool(on)
 
     def toggle(self):
-        self._mode_req = not self._mode_on
+        self._desired = not self._desired
 
     def update_settings(self, settings):
         self.settings.update(settings)
@@ -342,6 +366,7 @@ class Engine:
         return {
             'running': running,
             'mode': 'mouse' if (running and self._mode_on) else 'touchscreen',
+            'desktop_pause': running and self._desired and not self._gs,
             'touch_path': self._touch_path,
             'touch_name': self._touch_name,
             'error': self._error if not running else None,
@@ -363,25 +388,33 @@ class Engine:
             touch_fd = os.open(touch_path, os.O_RDONLY | os.O_NONBLOCK)
             self._applied_ver = self._settings_ver
             self._mode_on = False
-            if self._mode_req and not self.dry:
-                grab(touch_fd, True)
-                self._mode_on = True
-            self.log(f"listo: modo {'mouse' if self._mode_on else 'touchscreen'} "
+            self._gs_check = 0.0   # forzar chequeo de gamescope en la primera vuelta
+            self.log(f"listo: modo {'mouse' if self._desired else 'touchscreen'} "
                      f"(pid {os.getpid()})")
 
             while not self._stop.is_set():
                 if self._settings_ver != self._applied_ver:
                     trans = make_translator(self.settings, tinfo)
                     self._applied_ver = self._settings_ver
-                if self._mode_req is not None and self._mode_req != self._mode_on:
-                    self._mode_on = self._mode_req
+                # game mode vs escritorio: capturar el touch SOLO con gamescope.
+                # En escritorio se libera solo (sin Steam Input no habría clicks).
+                now = time.monotonic()
+                if now - self._gs_check >= 1.0:
+                    self._gs = gamescope_running()
+                    self._gs_check = now
+                effective = self._desired and self._gs
+                if effective != self._mode_on:
+                    self._mode_on = effective
                     if not self.dry:
-                        grab(touch_fd, self._mode_on)
+                        grab(touch_fd, effective)
                     trans.reset()
                     read_events(touch_fd)   # descartar lo acumulado
-                    self._mode_req = None
-                    self.log('modo ' + ('MOUSE (touch capturado)' if self._mode_on
-                                        else 'TOUCHSCREEN normal'))
+                    if effective:
+                        self.log('modo MOUSE (touch capturado)')
+                    elif self._desired:
+                        self.log('modo escritorio: touchscreen liberado (automático)')
+                    else:
+                        self.log('modo TOUCHSCREEN normal')
                 r, _, _ = select.select([touch_fd], [], [], 0.2)
                 if touch_fd in r:
                     evts = read_events(touch_fd)

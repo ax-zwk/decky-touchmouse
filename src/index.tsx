@@ -53,6 +53,8 @@ function Content() {
   const on = !!s.enabled && !!st.running;
   const statusText = st.error
     ? `Error: ${st.error}`
+    : st.desktop_pause
+    ? "Modo escritorio: touchscreen normal (se reactiva al volver a juegos)"
     : on
     ? `Activo: ${st.touch_name ?? st.touch_path ?? "?"}`
     : "Apagado (touchscreen normal)";

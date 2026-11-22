@@ -95,8 +95,9 @@ class Plugin:
 
     async def get_state(self):
         st = self._engine.status() if self._engine else {
-            'running': False, 'mode': 'touchscreen', 'touch_path': None,
-            'touch_name': None, 'error': None, 'pid': os.getpid(),
+            'running': False, 'mode': 'touchscreen', 'desktop_pause': False,
+            'touch_path': None, 'touch_name': None, 'error': None,
+            'pid': os.getpid(),
         }
         return {'settings': self._settings, 'status': st}
 

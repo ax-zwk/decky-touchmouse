@@ -75,7 +75,8 @@ def engine_test():
 
     syn = ev(touchmouse.EV_SYN, touchmouse.SYN_REPORT, 0)
     with mock.patch.object(touchmouse, 'scan_devices', return_value=fake), \
-         mock.patch.object(touchmouse.os, 'open', return_value=r):
+         mock.patch.object(touchmouse.os, 'open', return_value=r), \
+         mock.patch.object(touchmouse, 'gamescope_running', return_value=True):
         eng.start(mouse=True)
         assert eng.status()['running'], eng.status()
         assert eng.status()['mode'] == 'mouse'
@@ -95,6 +96,15 @@ def engine_test():
         eng.update_settings({'swap_xy': True, 'speed': 2.0})
         os.write(w, down(2, 100, 100) + syn + move(150, 100) + syn)
         time.sleep(0.6)
+        # modo escritorio (sin gamescope): liberar el touch aunque el usuario quiera mouse
+        with mock.patch.object(touchmouse, 'gamescope_running', return_value=False):
+            time.sleep(1.4)
+            assert eng.status()['mode'] == 'touchscreen', eng.status()
+            assert eng.status()['desktop_pause'] is True, eng.status()
+        # vuelta a game mode: recapturar solo
+        time.sleep(1.4)
+        assert eng.status()['mode'] == 'mouse', eng.status()
+        assert eng.status()['desktop_pause'] is False, eng.status()
         eng.stop()
     assert not eng.status()['running']
     assert any('liberado' in l for l in logs), logs
