@@ -97,21 +97,23 @@ function Content() {
       <PanelSectionRow>
         <ToggleField
           label="Intercambiar ejes X/Y"
-          description="Si el cursor se mueve en el eje equivocado"
+          description="Si al deslizar en horizontal el cursor se mueve en vertical"
           checked={!!s.swap_xy}
           onChange={toggleSetting("swap_xy")}
         />
       </PanelSectionRow>
       <PanelSectionRow>
         <ToggleField
-          label="Invertir X"
+          label="Invertir horizontal"
+          description="Si el cursor va al revés en horizontal"
           checked={!!s.flip_x}
           onChange={toggleSetting("flip_x")}
         />
       </PanelSectionRow>
       <PanelSectionRow>
         <ToggleField
-          label="Invertir Y"
+          label="Invertir vertical"
+          description="Si el cursor va al revés en vertical"
           checked={!!s.flip_y}
           onChange={toggleSetting("flip_y")}
         />

@@ -41,11 +41,16 @@ del sistema. Se instala, activa, desactiva y desinstala desde Decky.
 Desinstalar: Decky → Settings → Plugins → TouchMouse → Uninstall. La pantalla
 vuelve a la normalidad al instante.
 
+**Actualizaciones:** ver [UPDATES.md](UPDATES.md) — store personalizado de
+Decky para actualizar con un click.
+
 ## Calibración
 
 Si el cursor se mueve en el eje equivocado o invertido (paneles montados en
-vertical), usar los switches del panel: **Intercambiar ejes X/Y**,
-**Invertir X**, **Invertir Y**. Se aplican en caliente.
+vertical), usar los switches del panel: **Intercambiar ejes X/Y** (si al
+deslizar en horizontal el cursor se mueve en vertical), **Invertir
+horizontal** y **Invertir vertical** (si el cursor va al revés en ese eje).
+Se aplican en caliente.
 
 ## Uso como script (sin Decky)
 

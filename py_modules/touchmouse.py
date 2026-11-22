@@ -212,10 +212,12 @@ def pick_touchscreen(infos, override=''):
     return cands[0]['path']
 
 def make_transform(s):
+    # Los flips se aplican en espacio de PANTALLA (después del swap):
+    # flip_x invierte siempre el movimiento horizontal del cursor, flip_y el vertical.
     sx = -1 if s.get('flip_x') else 1
     sy = -1 if s.get('flip_y') else 1
     if s.get('swap_xy'):
-        return lambda dx, dy: (sy * dy, sx * dx)
+        return lambda dx, dy: (sx * dy, sy * dx)
     return lambda dx, dy: (sx * dx, sy * dy)
 
 def make_translator(s, tinfo=None):
@@ -474,7 +476,12 @@ def self_test():
     # 6) thresholds escalan con el panel
     t = make_translator(DEFAULT_SETTINGS, {'rx': (0, 2160), 'ry': (0, 3840)})
     assert t.move_thresh > 8
-    print('self-test: PASS (tap=nada, solo REL X/Y, ejes, fuzz 2000 frames, escalado)')
+    # 7) flips en espacio de pantalla: con swap, flip_x sigue invirtiendo lo horizontal
+    assert make_transform({'swap_xy': True, 'flip_x': True})(3, 7) == (-7, 3)
+    assert make_transform({'swap_xy': True, 'flip_y': True})(3, 7) == (7, -3)
+    assert make_transform({'flip_x': True})(3, 7) == (-3, 7)
+    assert make_transform({'flip_y': True})(3, 7) == (3, -7)
+    print('self-test: PASS (tap=nada, solo REL X/Y, ejes pantalla, fuzz 2000 frames, escalado)')
 
 # ---------------- CLI ----------------
 
